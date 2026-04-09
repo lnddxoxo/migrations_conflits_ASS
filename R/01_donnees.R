@@ -273,3 +273,8 @@ write_csv(panel_final, "data/processed/panel_clean.csv")
 cat("Panel final exporté ✓\n")
 cat("Lignes :", nrow(panel_final), "\n")
 cat("NA migrants :", sum(is.na(panel_final$migrants)), "\n")
+
+
+
+
+

@@ -101,3 +101,38 @@ ssd_distances <- coords |>
   select(iso3, dist_ssd)
 
 ssd_distances
+
+#Integration d ela distance de SSD
+min_dist_ssd <- min(ssd_distances$dist_ssd[ssd_distances$iso3 != "SSD"])
+
+for (i in pays) {
+  if (i != "SSD") {
+    d <- ssd_distances$dist_ssd[ssd_distances$iso3 == i]
+    dist_mat["SSD", i] <- d
+    dist_mat[i, "SSD"] <- d
+  }
+}
+
+min_dist <- min(dist_mat[dist_mat > 0], na.rm = TRUE)
+W2_raw <- ifelse(dist_mat > 0, min_dist / dist_mat, 0)
+W2_raw[is.na(W2_raw)] <- 0
+W2_raw <- W2_raw / rowSums(W2_raw)
+
+W2_listw <- mat2listw(W2_raw, style = "W")
+
+saveRDS(W2_listw, "data/processed/W2_listw.rds")
+write.csv(W2_raw, "data/processed/W2_matrix.csv")
+cat("W2 construite et exportée ✓\n")
+
+#Matrice des K proches voisins
+
+coords_mat <- st_centroid(shp_ssa) |>
+  st_coordinates()
+
+knn5 <- knearneigh(coords_mat, k = 5)
+nb_knn5 <- knn2nb(knn5)
+W3_listw <- nb2listw(nb_knn5, style = "W", zero.policy = TRUE)
+
+saveRDS(W3_listw, "data/processed/W3_listw.rds")
+cat("W3 construite et exportée ✓\n")
+summary(nb_knn5)
