@@ -1,0 +1,6 @@
+Variable,Coefficient,Std. Error,z-stat,p-value, 
+τ — Conflits (t-1),0.5278,0.2334,2.261,0.0238,**
+Log migrants (t-1),0.0052,0.0033,1.549,0.1215,
+Log PIB/hab,-0.0378,0.0142,-2.653,0.008,***
+Démocratie,-0.0026,0.0019,-1.383,0.1667,
+Log ressources,0.0282,0.0152,1.847,0.0647,*

@@ -1,0 +1,6 @@
+Variable,Statistique,p-value,Conclusion
+Log conflits pc,NA,NA,NA
+Log migrants (t-1),5.712,1,Non stationnaire I(1)
+Log PIB/hab,2.487,0.9936,Non stationnaire I(1)
+Démocratie (Polity2),NA,NA,NA
+Log ressources,-9.114,0,Stationnaire I(0) ✓
