@@ -6,7 +6,33 @@ st.set_page_config(
     page_icon="🌍",
     layout="wide"
 )
-
+st.markdown("""
+    <style>
+        [data-testid="metric-container"] {
+            background-color: #F5F0E8;
+            border: 2px solid #F5A623;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        [data-testid="metric-container"] label {
+            font-size: 16px !important;
+            color: #1A1A2E !important;
+            font-weight: bold;
+        }
+        [data-testid="metric-container"] div {
+            font-size: 28px !important;
+            color: #F5A623 !important;
+            font-weight: bold;
+        }
+        .stDataFrame {
+            border: 2px solid #F5A623;
+            border-radius: 10px;
+        }
+        p, li, div {
+            font-size: 15px !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 st.markdown("""
     <link rel="stylesheet" 
     href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
