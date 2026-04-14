@@ -8,7 +8,7 @@ COULEURS = {
     "conflit_haut": "#C0392B"
 }
 
-TITRE_DASHBOARD = "Migrations & Conflits Armés en Afrique Subsaharienne"
+TITRE_DASHBOARD = "Migrations & Conflits Armées en Afrique Subsaharienne"
 SOUS_TITRE = "Analyse économétrique spatiale — Panel 1996–2024"
 PAYS_ASS = [
     "AGO","BEN","BWA","BFA","BDI","CMR","CAF","TCD",
