@@ -1,4 +1,6 @@
 import streamlit as st
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 from config import COULEURS, TITRE_DASHBOARD, SOUS_TITRE
 
 st.set_page_config(
