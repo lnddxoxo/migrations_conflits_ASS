@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import geopandas as gpd
-import numpy as np
 from config import COULEURS, PAYS_ASS
 
 def afficher():
@@ -120,79 +119,6 @@ def afficher():
         use_container_width=True,
         height=400
     )
-
-    st.markdown("---")
-
-    st.markdown(f"<h3 style='color:{COULEURS['vert']};'>Diagramme de Moran</h3>",
-                unsafe_allow_html=True)
-
-    df_moran = pd.read_csv("data/moran_panel.csv")
-
-    annee_moran = st.slider(
-        "Choisissez une année",
-        min_value=int(df_moran["annee"].min()),
-        max_value=int(df_moran["annee"].max()),
-        value=2010,
-        key="slider_moran"
-    )
-
-    df_moran_an = df_moran[df_moran["annee"] == annee_moran]
-
-    z = np.polyfit(df_moran_an["z_conflits"], df_moran_an["lag_z"], 1)
-    p = np.poly1d(z)
-    x_line = np.linspace(df_moran_an["z_conflits"].min(),
-                         df_moran_an["z_conflits"].max(), 100)
-
-    fig_moran = go.Figure()
-
-    fig_moran.add_trace(go.Scatter(
-        x=df_moran_an["z_conflits"],
-        y=df_moran_an["lag_z"],
-        mode="markers+text",
-        text=df_moran_an["iso3"],
-        textposition="top center",
-        textfont=dict(size=8),
-        marker=dict(
-            color=COULEURS["or"],
-            size=8,
-            line=dict(color=COULEURS["fond"], width=1)
-        ),
-        name="Pays"
-    ))
-
-    fig_moran.add_trace(go.Scatter(
-        x=x_line,
-        y=p(x_line),
-        mode="lines",
-        line=dict(color=COULEURS["conflit_haut"], width=2, dash="dash"),
-        name=f"I de Moran = {z[0]:.3f}"
-    ))
-
-    fig_moran.add_hline(y=0, line_color="#1A1A2E", line_width=1)
-    fig_moran.add_vline(x=0, line_color="#1A1A2E", line_width=1)
-
-    fig_moran.update_layout(
-        title=f"Diagramme de Moran — Conflits ASS ({annee_moran})",
-        xaxis_title="Conflits standardises (z)",
-        yaxis_title="Lag spatial (Wz)",
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        font_color="#1A1A2E",
-        height=500,
-        font=dict(size=13)
-    )
-
-    st.plotly_chart(fig_moran, use_container_width=True)
-
-    st.markdown(f"""
-        <div style='background-color:#F5F0E8; padding:15px;
-        border-left:4px solid {COULEURS["or"]}; border-radius:5px;'>
-        <b>Lecture :</b> La pente de la droite = l'indice de Moran I.
-        Une pente positive confirme l'autocorrelation spatiale positive —
-        les pays en conflit tendent a etre entoures de pays en conflit.
-        Les quadrants HH (haut-droit) et LL (bas-gauche) confirment les clusters spatiaux.
-        </div>
-    """, unsafe_allow_html=True)
 
     st.markdown("---")
 
