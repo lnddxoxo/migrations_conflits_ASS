@@ -8,7 +8,10 @@ st.set_page_config(
     page_icon="🌍",
     layout="wide"
 )
+
 st.markdown("""
+    <link rel="stylesheet" 
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         [data-testid="metric-container"] {
             background-color: #F5F0E8;
@@ -32,41 +35,6 @@ st.markdown("""
         }
         p, li, div {
             font-size: 15px !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-st.markdown("""
-    <link rel="stylesheet" 
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        .topbar {
-            background-color: white;
-            padding: 10px 20px;
-            display: flex;
-            gap: 10px;
-            border-bottom: 2px solid #F5A623;
-            margin-bottom: 20px;
-        }
-        .topbar-btn {
-            background: none;
-            border: none;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #1A1A2E;
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .topbar-btn:hover {
-            background-color: #F5A623;
-            color: white;
-        }
-        .topbar-btn.active {
-            background-color: #F5A623;
-            color: white;
-            font-weight: bold;
         }
     </style>
 """, unsafe_allow_html=True)
