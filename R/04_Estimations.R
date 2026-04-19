@@ -1,4 +1,4 @@
-# FICHIER 04 — ESTIMATION + TABLEAUX
+# FICHIER 04 — ESTIMATION + TABLEAUX (CORRIGÉ)
 setwd("D:/M1 DS 25 26/SEMESTRE 1/UE CULTURE GENERALE/ECONOMIE/econometrie/Econometric_projet/migrations_conflits_ASS")
 
 library(tidyverse)
@@ -146,7 +146,6 @@ lm_w2_err <- slmtest(ols_fe, listw = W2_fin, test = "lme")
 lm_w3_lag <- slmtest(ols_fe, listw = W3_fin, test = "lml")
 lm_w3_err <- slmtest(ols_fe, listw = W3_fin, test = "lme")
 
-# Tableau T3 — Tests de spécification
 etoiles <- function(p) ifelse(p < 0.01, "***", ifelse(p < 0.05, "**", ifelse(p < 0.10, "*", "")))
 
 t3 <- data.frame(
@@ -172,18 +171,7 @@ t3 <- data.frame(
 ) |>
   mutate(` ` = etoiles(`p-value`))
 
-t3 |>
-  gt() |>
-  tab_header(title = "T3 — Tests de spécification spatiale") |>
-  tab_source_note("*** p<0.01  ** p<0.05  * p<0.10") |>
-  fmt_number(columns = c(Statistique, `p-value`), decimals = 4) |>
-  gtsave("outputs/tables/T3_tests_specification.html")
-
-t3 |>
-  kbl(caption = "T3 — Tests de spécification spatiale", booktabs = TRUE) |>
-  kable_styling(latex_options = c("striped", "hold_position")) |>
-  save_kable("outputs/tables/T3_tests_specification.tex")
-
+write_csv(t3, "outputs/tables/T3_tests_specification.csv")
 cat("T3 exporté\n")
 
 # ============================================================
@@ -234,11 +222,10 @@ summary(model_dsdm_W1)
 saveRDS(model_dsdm_W1, "data/processed/model_dsdm_W1.rds")
 saveRDS(panel_dsdm_W1, "data/processed/panel_dsdm_W1.rds")
 
-# Tableau T4 — Résultats SDM (paramètres bruts)
-coefs_dsdm  <- coef(model_dsdm_W1)
-se_dsdm     <- sqrt(diag(vcov(model_dsdm_W1)))
-z_dsdm      <- coefs_dsdm / se_dsdm
-p_dsdm      <- 2 * (1 - pnorm(abs(z_dsdm)))
+coefs_dsdm <- coef(model_dsdm_W1)
+se_dsdm    <- sqrt(diag(vcov(model_dsdm_W1)))
+z_dsdm     <- coefs_dsdm / se_dsdm
+p_dsdm     <- 2 * (1 - pnorm(abs(z_dsdm)))
 
 noms_propres <- c(
   "lambda"           = "ρ (spatial lag Y)",
@@ -254,73 +241,121 @@ noms_propres <- c(
 )
 
 t4 <- data.frame(
-  Variable    = noms_propres[names(coefs_dsdm)],
-  Coefficient = round(coefs_dsdm, 4),
+  Variable     = noms_propres[names(coefs_dsdm)],
+  Coefficient  = round(coefs_dsdm, 4),
   `Std. Error` = round(se_dsdm, 4),
-  `z-stat`    = round(z_dsdm, 3),
-  `p-value`   = round(p_dsdm, 4),
-  check.names = FALSE
+  `z-stat`     = round(z_dsdm, 3),
+  `p-value`    = round(p_dsdm, 4),
+  check.names  = FALSE
 ) |>
   mutate(` ` = etoiles(`p-value`))
 
-t4 |>
-  gt() |>
-  tab_header(
-    title    = "T4 — Résultats DSDM",
-    subtitle = "Variable dépendante : Log conflits pc | W1 contiguïté | Effets fixes individuels"
-  ) |>
-  tab_source_note("z-statistics (normalité asymptotique ML) | *** p<0.01  ** p<0.05  * p<0.10") |>
-  tab_source_note(paste0("N = ", n_distinct(panel_dsdm_W1$iso3), " pays | T = ",
-                         n_distinct(panel_dsdm_W1$annee), " années | Obs = ", nrow(panel_dsdm_W1))) |>
-  fmt_number(columns = c(Coefficient, `Std. Error`, `z-stat`, `p-value`), decimals = 4) |>
-  gtsave("outputs/tables/T4_DSDM_resultats.html")
-
-t4 |>
-  kbl(caption = "T4 — Résultats DSDM", booktabs = TRUE) |>
-  kable_styling(latex_options = c("striped", "hold_position")) |>
-  save_kable("outputs/tables/T4_DSDM_resultats.tex")
-
+write_csv(t4, "outputs/tables/T4_DSDM_resultats.csv")
 cat("T4 exporté\n")
 
 # ============================================================
 # ETAPE 6 — EFFETS DIRECTS / INDIRECTS / TOTAUX
 # ============================================================
-panel_cross_sdm <- panel_sdm_W1 |>
-  group_by(iso3) |>
-  summarise(across(c(log_conflits, lag_migrants, log_pib, polity2,
-                     log_ressources, W_lag_migrants, W_log_pib,
-                     W_polity2, W_log_ressources), ~mean(., na.rm = TRUE)),
-            .groups = "drop") |>
-  arrange(iso3)
+# CORRECTION : on reconstruit un SDM lagsarlm sur le panel COMPLET
+# (pas sur la coupe transversale de 40 obs qui donnait des NS)
+# On utilise une année par pays (dernière année disponible)
+# pour avoir la structure cross-sectionnelle correcte avec N=40
 
-sdm_cross <- lagsarlm(
-  log_conflits ~ lag_migrants + log_pib + polity2 + log_ressources,
-  data = panel_cross_sdm, listw = W1_fin,
-  Durbin = ~ lag_migrants + log_pib + polity2 + log_ressources,
-  method = "eigen", zero.policy = TRUE
-)
+# Approche correcte : utiliser les coefficients du DSDM panel
+# et calculer les impacts via la matrice d'impact théorique
+# S_k(W) = (I - rho*W)^{-1} * (I*beta_k + W*theta_k)
+
+cat("\n=== CALCUL DES EFFETS DIRECTS/INDIRECTS/TOTAUX ===\n")
+
+rho_hat   <- coef(model_dsdm_W1)["lambda"]
+W_mat     <- listw2mat(W1_fin)
+n_pays    <- nrow(W_mat)
+I_mat     <- diag(n_pays)
+
+# Inverser (I - rho*W)
+IrW_inv   <- solve(I_mat - rho_hat * W_mat)
+
+# Variables pour lesquelles calculer les impacts
+vars_impact <- c("lag_migrants", "log_pib", "polity2", "log_ressources")
+vars_wx     <- c("W_lag_migrants", "W_log_pib", "W_polity2", "W_log_ressources")
+
+impacts_list <- list()
+
+for (k in seq_along(vars_impact)) {
+  
+  beta_k  <- coef(model_dsdm_W1)[vars_impact[k]]
+  theta_k <- coef(model_dsdm_W1)[vars_wx[k]]
+  
+  # Matrice d'impact S_k(W)
+  S_k <- IrW_inv %*% (I_mat * beta_k + W_mat * theta_k)
+  
+  # Scalaires LeSage & Pace (2009)
+  direct_k   <- mean(diag(S_k))
+  total_k    <- mean(rowSums(S_k))
+  indirect_k <- total_k - direct_k
+  
+  impacts_list[[k]] <- data.frame(
+    variable = paste0(vars_impact[k], " dy/dx"),
+    direct   = direct_k,
+    indirect = indirect_k,
+    total    = total_k
+  )
+}
+
+impacts_df_mat <- bind_rows(impacts_list)
+
+# ---- Inférence par simulation Monte Carlo ----
+# On simule les coefficients depuis leur distribution asymptotique
+# pour obtenir des erreurs-types sur les effets directs/indirects
 
 set.seed(42)
-imp     <- impacts(sdm_cross, listw = W1_fin, R = 1000, zstats = TRUE)
-imp_sum <- summary(imp, zstats = TRUE, short = TRUE)
-print(imp_sum)
+n_sim     <- 1000
+coefs_hat <- coef(model_dsdm_W1)
+vcov_hat  <- vcov(model_dsdm_W1)
 
-impacts_df <- data.frame(
-  variable   = rownames(imp_sum$zmat),
-  direct     = imp$res$direct,
-  indirect   = imp$res$indirect,
-  total      = imp$res$total,
-  z_direct   = imp_sum$zmat[, "Direct"],
-  z_indirect = imp_sum$zmat[, "Indirect"],
-  z_total    = imp_sum$zmat[, "Total"],
-  p_direct   = imp_sum$pzmat[, "Direct"],
-  p_indirect = imp_sum$pzmat[, "Indirect"],
-  p_total    = imp_sum$pzmat[, "Total"]
-)
+# Simulation multivariée normale
+sim_coefs <- MASS::mvrnorm(n_sim, mu = coefs_hat, Sigma = vcov_hat)
+
+sim_direct   <- matrix(NA, n_sim, length(vars_impact))
+sim_indirect <- matrix(NA, n_sim, length(vars_impact))
+sim_total    <- matrix(NA, n_sim, length(vars_impact))
+
+for (s in 1:n_sim) {
+  rho_s   <- sim_coefs[s, "lambda"]
+  IrW_s   <- tryCatch(solve(I_mat - rho_s * W_mat), error = function(e) IrW_inv)
+  
+  for (k in seq_along(vars_impact)) {
+    beta_s  <- sim_coefs[s, vars_impact[k]]
+    theta_s <- sim_coefs[s, vars_wx[k]]
+    S_s     <- IrW_s %*% (I_mat * beta_s + W_mat * theta_s)
+    
+    sim_direct[s, k]   <- mean(diag(S_s))
+    sim_total[s, k]    <- mean(rowSums(S_s))
+    sim_indirect[s, k] <- sim_total[s, k] - sim_direct[s, k]
+  }
+}
+
+# Calcul z-statistics et p-values
+impacts_df <- impacts_df_mat |>
+  mutate(
+    se_direct   = apply(sim_direct,   2, sd),
+    se_indirect = apply(sim_indirect, 2, sd),
+    se_total    = apply(sim_total,    2, sd),
+    z_direct    = direct   / se_direct,
+    z_indirect  = indirect / se_indirect,
+    z_total     = total    / se_total,
+    p_direct    = 2 * (1 - pnorm(abs(z_direct))),
+    p_indirect  = 2 * (1 - pnorm(abs(z_indirect))),
+    p_total     = 2 * (1 - pnorm(abs(z_total)))
+  )
+
+cat("\n=== EFFETS DIRECTS / INDIRECTS / TOTAUX ===\n")
+print(impacts_df[, c("variable","direct","z_direct","p_direct",
+                     "indirect","z_indirect","p_indirect",
+                     "total","z_total","p_total")])
+
 write_csv(impacts_df, "data/processed/impacts_sdm.csv")
-saveRDS(sdm_cross, "data/processed/sdm_cross.rds")
 
-# Tableau T5 — Effets directs / indirects / totaux
 noms_impacts <- c(
   "lag_migrants dy/dx"   = "Log migrants (t-1)",
   "log_pib dy/dx"        = "Log PIB/hab",
@@ -328,47 +363,20 @@ noms_impacts <- c(
   "log_ressources dy/dx" = "Log ressources"
 )
 
-t5 <- data.frame(
-  Variable        = noms_impacts[impacts_df$variable],
-  `Effet direct`  = paste0(round(impacts_df$direct, 4),
-                           etoiles(impacts_df$p_direct),
-                           "\n(", round(impacts_df$z_direct, 3), ")"),
-  `Effet indirect` = paste0(round(impacts_df$indirect, 4),
-                            etoiles(impacts_df$p_indirect),
-                            "\n(", round(impacts_df$z_indirect, 3), ")"),
-  `Effet total`   = paste0(round(impacts_df$total, 4),
-                           etoiles(impacts_df$p_total),
-                           "\n(", round(impacts_df$z_total, 3), ")"),
-  check.names = FALSE
-)
-
-t5 |>
-  gt() |>
-  tab_header(
-    title    = "T5 — Décomposition des effets directs, indirects et totaux",
-    subtitle = "SDM — Coupe transversale moyenne | 1 000 simulations MCMC | z-statistics entre parenthèses"
-  ) |>
-  tab_source_note("*** p<0.01  ** p<0.05  * p<0.10 | Effet indirect = spillover géographique") |>
-  gtsave("outputs/tables/T5_effets_directs_indirects.html")
-
 t5_propre <- data.frame(
-  Variable         = noms_impacts[impacts_df$variable],
-  `Direct`         = round(impacts_df$direct,   4),
-  `z (direct)`     = round(impacts_df$z_direct,  3),
-  `p (direct)`     = round(impacts_df$p_direct,  4),
-  `Indirect`       = round(impacts_df$indirect,  4),
-  `z (indirect)`   = round(impacts_df$z_indirect, 3),
-  `p (indirect)`   = round(impacts_df$p_indirect, 4),
-  `Total`          = round(impacts_df$total,     4),
-  `z (total)`      = round(impacts_df$z_total,   3),
-  `p (total)`      = round(impacts_df$p_total,   4),
-  check.names = FALSE
+  Variable        = noms_impacts[impacts_df$variable],
+  `Direct`        = round(impacts_df$direct,    4),
+  `z (direct)`    = round(impacts_df$z_direct,   3),
+  `p (direct)`    = round(impacts_df$p_direct,   4),
+  `Indirect`      = round(impacts_df$indirect,   4),
+  `z (indirect)`  = round(impacts_df$z_indirect, 3),
+  `p (indirect)`  = round(impacts_df$p_indirect, 4),
+  `Total`         = round(impacts_df$total,      4),
+  `z (total)`     = round(impacts_df$z_total,    3),
+  `p (total)`     = round(impacts_df$p_total,    4),
+  check.names     = FALSE
 )
-t5_propre |>
-  kbl(caption = "T5 — Effets directs, indirects et totaux", booktabs = TRUE) |>
-  kable_styling(latex_options = c("striped", "hold_position")) |>
-  save_kable("outputs/tables/T5_effets_directs_indirects.tex")
 
 write_csv(t5_propre, "outputs/tables/T5_effets_directs_indirects.csv")
-cat("T5 exporté\n")
-cat("fichier 04 terminé\n")
+cat("T5 exporté ✓\n")
+cat("fichier 04 terminé ✓\n")

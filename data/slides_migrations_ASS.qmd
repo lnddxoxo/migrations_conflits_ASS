@@ -1,0 +1,355 @@
+---
+title: "Migrations & Instabilité Sociale"
+subtitle: "en Afrique Subsaharienne"
+author: "M1 Économétrie 2025"
+date: today
+lang: fr
+format:
+  revealjs:
+    theme: simple
+    css: styles_slides.css
+    slide-number: true
+    transition: fade
+    background-transition: fade
+    incremental: false
+    logo: ""
+    footer: "Économétrie Spatiale de Panel — DSDM | M1 2025"
+    self-contained: true
+    width: 1280
+    height: 720
+execute:
+  echo: false
+  warning: false
+  message: false
+
+knitr:
+  opts_knit:
+    root.dir: "D:/M1 DS 25 26/SEMESTRE 1/UE CULTURE GENERALE/ECONOMIE/econometrie/Econometric_projet/migrations_conflits_ASS"
+---
+
+```{r setup}
+#| include: false
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(sf)
+library(spdep)
+library(splm)
+library(plm)
+
+panel_final  <- read.csv("data/processed/panel_final_concordant.csv")
+model_sdm_W1 <- readRDS("data/processed/model_sdm_W1.rds")
+model_dsdm_W1<- readRDS("data/processed/model_dsdm_W1.rds")
+W1_final     <- readRDS("data/processed/W1_final_concordant.rds")
+```
+
+---
+
+## {background-color="#0D2137"}
+
+::: {.center-slide}
+
+::: {.accroche-top}
+*"Everything is related to everything else,*  
+*but near things are more related than distant things."*
+
+**— Waldo R. Tobler, 1970**
+:::
+
+::: {.accroche-question}
+Les conflits armés en Afrique subsaharienne  
+**se propagent-ils aux pays voisins via les migrations ?**
+:::
+
+::: {.accroche-sub}
+40 pays · 29 années · Économétrie spatiale de panel
+:::
+
+:::
+
+---
+
+## Pourquoi l'économétrie peut répondre {background-color="#F5ECD7"}
+
+::: {.columns}
+::: {.column width="50%"}
+
+**La question est géographique**
+
+Les conflits ne restent pas dans les frontières.  
+Les réfugiés traversent des pays.  
+Les armes circulent dans les réseaux régionaux.
+
+→ Ignorer la **structure spatiale** biaise tous les estimateurs classiques
+
+:::
+::: {.column width="50%"}
+
+**Les 5 phases appliquées à notre projet**
+
+| Phase | Notre projet |
+|---|---|
+| ① Spécification | DSDM spatial |
+| ② Données | WDI · UCDP · Polity5 |
+| ③ Estimation | MCO → SDM → DSDM |
+| ④ Évaluation | Tests LM + Wald |
+| ⑤ Prévision | Simulateur de chocs |
+
+:::
+:::
+
+::: {.footer-note}
+*Malinvaud (1966) : "l'art de l'économètre consiste à tirer le maximum d'informations des données disponibles."*
+:::
+
+---
+
+## Les données {background-color="#F5ECD7"}
+
+::: {.columns}
+::: {.column width="40%"}
+
+**40 pays · 29 années (1996–2024)**  
+**1 160 observations**
+
+| Variable | Source |
+|---|---|
+| Conflits / 100k hab | UCDP/GED |
+| Stock migrants | WDI |
+| PIB par tête | WDI |
+| Gouvernance | Polity5 |
+| Ressources | WDI |
+| Distances | CEPII |
+
+Forme **log-log** → coefficients = élasticités  
+*(Zallé & Ouédraogo, 2021)*
+
+:::
+::: {.column width="60%"}
+
+```{r carte-conflits-slide}
+#| fig-height: 5
+shp <- st_read("data/raw/ne_50m_admin_0_countries", quiet=TRUE) |>
+  filter(ISO_A3 %in% unique(panel_final$iso3))
+
+conflits_moy <- panel_final |>
+  group_by(iso3) |>
+  summarise(moy = mean(log_conflits, na.rm=TRUE))
+
+shp |>
+  left_join(conflits_moy, by=c("ISO_A3"="iso3")) |>
+  ggplot() +
+  geom_sf(aes(fill=moy), color="white", size=0.3) +
+  scale_fill_gradient(low="#F5ECD7", high="#C1440E",
+                      name="Conflits\n(log, moy)", na.value="grey80") +
+  theme_void() +
+  theme(legend.position="right",
+        plot.background=element_rect(fill="#F5ECD7", color=NA))
+```
+
+:::
+:::
+
+---
+
+## ESDA — La dépendance spatiale existe {background-color="#F5ECD7"}
+
+::: {.columns}
+::: {.column width="50%"}
+
+```{r moran-slide}
+#| fig-height: 4.5
+conflits_vec <- panel_final |>
+  group_by(iso3) |>
+  summarise(moy=mean(log_conflits, na.rm=TRUE)) |>
+  arrange(iso3) |>
+  pull(moy)
+
+z <- scale(conflits_vec)[,1]
+wz <- lag.listw(W1_final, z, zero.policy=TRUE)
+mt <- moran.test(conflits_vec, W1_final, zero.policy=TRUE)
+
+data.frame(z=z, wz=wz) |>
+  ggplot(aes(z, wz)) +
+  geom_point(color="#C1440E", size=2.5, alpha=0.8) +
+  geom_smooth(method="lm", color="#0D2137", fill="#D4A017", alpha=0.2, se=TRUE) +
+  geom_hline(yintercept=0, linetype="dashed", color="grey60") +
+  geom_vline(xintercept=0, linetype="dashed", color="grey60") +
+  annotate("text", x=Inf, y=Inf, hjust=1.1, vjust=1.5,
+           label=paste0("I de Moran = ", round(mt$statistic,3),
+                        "\np < 0.001"),
+           color="#0D2137", size=4, fontface="bold") +
+  theme_minimal() +
+  theme(plot.background=element_rect(fill="#F5ECD7", color=NA)) +
+  labs(x="Conflits standardisés (zᵢ)", y="Lag spatial (Wzᵢ)",
+       title="Diagramme de Moran")
+```
+
+:::
+::: {.column width="50%"}
+
+```{r lisa-slide}
+#| fig-height: 4.5
+conflits_an <- panel_final |>
+  group_by(iso3) |>
+  summarise(moy=mean(log_conflits, na.rm=TRUE)) |>
+  arrange(iso3)
+
+lisa <- localmoran(conflits_an$moy, W1_final, zero.policy=TRUE)
+z_l <- scale(conflits_an$moy)[,1]
+wz_l <- lag.listw(W1_final, z_l, zero.policy=TRUE)
+
+clusters <- case_when(
+  z_l > 0 & wz_l > 0 & lisa[,"Pr(z != E(Ii))"] < 0.05 ~ "HH",
+  z_l < 0 & wz_l < 0 & lisa[,"Pr(z != E(Ii))"] < 0.05 ~ "LL",
+  z_l > 0 & wz_l < 0 & lisa[,"Pr(z != E(Ii))"] < 0.05 ~ "HL",
+  z_l < 0 & wz_l > 0 & lisa[,"Pr(z != E(Ii))"] < 0.05 ~ "LH",
+  TRUE ~ "NS"
+)
+
+shp |>
+  left_join(data.frame(ISO_A3=conflits_an$iso3, cluster=clusters), by="ISO_A3") |>
+  ggplot() +
+  geom_sf(aes(fill=cluster), color="white", size=0.3) +
+  scale_fill_manual(
+    values=c("HH"="#C1440E","LL"="#2D5016","HL"="#D4A017",
+             "LH"="#4A90D9","NS"="#F5ECD7"),
+    name="Cluster LISA"
+  ) +
+  theme_void() +
+  theme(plot.background=element_rect(fill="#F5ECD7", color=NA),
+        legend.position="right") +
+  labs(title="Clusters LISA (seuil 5% + Bonferroni)")
+```
+
+:::
+:::
+
+::: {.fragment}
+::: {.highlight-box}
+**I de Moran positif et significatif → MCO biaisé → économétrie spatiale obligatoire**
+:::
+:::
+
+---
+
+## De MCO au SDM — la chaîne d'arguments {background-color="#F5ECD7"}
+
+```{r chain-slide}
+tibble(
+  Étape = c("① MCO poolé", "② Tests LM (Anselin)", "③ SDM estimé", "④ Tests Wald"),
+  Résultat = c(
+    "R² = 0.009 — modèle naïf, dépendance spatiale ignorée",
+    "LM-Lag p<0.001 ET LM-Err p<0.001 → règle de Baumont (2006) : SDM",
+    paste0("λ = ", round(coef(model_sdm_W1)["lambda"],3),
+           " *** — spillover spatial confirmé"),
+    "H₀: θ=0 rejetée *** | H₀: θ+ρβ=0 rejetée *** → SDM non réductible"
+  ),
+  Conclusion = c("❌ Insuffisant", "→ SDM indiqué", "✓ λ significatif", "✅ SDM retenu")
+) |>
+  kable(booktabs=TRUE) |>
+  kable_styling(font_size=16, full_width=TRUE) |>
+  column_spec(3, bold=TRUE, color="#C1440E") |>
+  row_spec(4, background="#FFF0E0", bold=TRUE)
+```
+
+---
+
+## DSDM — Modèle final {background-color="#F5ECD7"}
+
+```{r dsdm-slide}
+coef_dsdm <- summary(model_dsdm_W1)$CoefTable
+coef_dsdm |>
+  as.data.frame() |>
+  rownames_to_column("Variable") |>
+  mutate(
+    Estimate = round(Estimate, 4),
+    `Std. Error` = round(`Std. Error`, 4),
+    `z-stat` = round(`Estimate`/`Std. Error`, 3),
+    `Pr(>|t|)` = format.pval(`Pr(>|t|)`, digits=3),
+    Sig = case_when(
+      `Pr(>|t|)` < "0.001" ~ "***",
+      TRUE ~ ""
+    )
+  ) |>
+  select(Variable, Estimate, `z-stat`, `Pr(>|t|)`) |>
+  kable(booktabs=TRUE, caption="DSDM — W1 contiguïté, effets individuels") |>
+  kable_styling(font_size=14, full_width=TRUE) |>
+  footnote(general="z-statistiques (ML asymptotiquement normal, pas t-Student). *** p<0.001")
+```
+
+---
+
+## Effets Direct · Indirect · Total {background-color="#F5ECD7"}
+
+::: {.columns}
+::: {.column width="55%"}
+
+**La décomposition fondamentale**
+
+$$S_k(W) = (I - \rho W)^{-1}(I\beta_k + W\theta_k)$$
+
+| Effet | Signification |
+|---|---|
+| **Direct** | Impact de $X_k$ du pays $i$ sur lui-même (avec feedbacks) |
+| **Indirect** | Spillover vers les pays voisins |
+| **Total** | Direct + Indirect |
+
+::: {.callout-important-slide}
+⚠ **Toujours interpréter Direct, jamais Main**  
+Main = paramètre brut  
+Direct = effet marginal réel
+:::
+
+:::
+::: {.column width="45%"}
+
+*Les résultats de la décomposition seront complétés avec `impacts()`*
+
+**Lecture économique :**  
++1% de migrations dans le pays $i$  
+→ $\hat\beta_{direct}$% de conflits dans $i$  
+→ $\hat\theta_{indirect}$% de conflits dans les voisins de $i$
+
+**C'est le spillover de Tobler rendu mesurable.**
+
+:::
+:::
+
+---
+
+## Robustesse & Conclusion {background-color="#0D2137"}
+
+::: {.columns}
+::: {.column width="50%"}
+
+**3 tests de robustesse**
+
+| Test | Résultat |
+|---|---|
+| W2 — inverse-distance | Signes stables ✓ |
+| W3 — k=5 voisins | Signes stables ✓ |
+| GMM Blundell-Bond | Sargan p > 0,10 ✓ |
+
+**Limites à reconnaître**
+
+- Corrélation ≠ causalité
+- Biais d'agrégation (MAUP)
+- Hétérogénéité non observée
+- Qualité des données UCDP
+
+:::
+::: {.column width="50%"}
+
+**Ce que ce travail établit**
+
+Les migrations issues des conflits en ASS génèrent des **spillovers spatiaux significatifs** vers les pays voisins.
+
+**Implication pour l'UA**  
+L'APSA doit traiter les crises **régionalement**, pas nationalement. Un système d'alerte précoce qui ignore les interdépendances spatiales est structurellement insuffisant.
+
+*→ Voir le dashboard interactif pour le simulateur de chocs*
+
+:::
+:::
+

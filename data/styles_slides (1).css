@@ -1,0 +1,28 @@
+:root {
+  --terracotta: #C1440E;
+  --ocre:       #D4A017;
+  --savane:     #2D5016;
+  --nuit:       #0D2137;
+  --creme:      #F5ECD7;
+}
+
+.reveal { font-family: "Georgia", serif; }
+.reveal h1, .reveal h2 { color: var(--nuit); }
+.reveal .slide-number { color: var(--ocre); }
+
+.center-slide { text-align: center; }
+.accroche-top { font-size: 1.4em; color: var(--creme);
+                border-left: 4px solid var(--ocre);
+                padding: 0.8em 1.5em; margin: 2em auto;
+                max-width: 700px; text-align: left; }
+.accroche-question { font-size: 1.8em; font-weight: bold;
+                     color: var(--ocre); margin: 1.5em 0; }
+.accroche-sub { color: #aaa; font-size: 1em; }
+
+.highlight-box { background: var(--terracotta); color: white;
+                 padding: 0.8em 1.5em; border-radius: 6px;
+                 font-weight: bold; text-align: center; margin-top: 1em; }
+.callout-important-slide { background: #FFF0E0;
+                            border-left: 4px solid var(--terracotta);
+                            padding: 0.6em 1em; margin-top: 1em; font-size: 0.9em; }
+.footer-note { font-size: 0.75em; color: #888; font-style: italic; margin-top: 1em; }

@@ -1,0 +1,22 @@
+/* ── Palette africaine ── */
+:root {
+  --terracotta: #C1440E;
+  --ocre:       #D4A017;
+  --savane:     #2D5016;
+  --nuit:       #0D2137;
+  --creme:      #F5ECD7;
+}
+
+body { font-family: "Georgia", serif; color: var(--nuit); }
+h1, h2, h3 { color: var(--nuit); font-family: "Georgia", serif; }
+h2 { border-bottom: 3px solid var(--ocre); padding-bottom: 0.3em; }
+
+.callout-important { border-left: 4px solid var(--terracotta) !important; background: #FFF0E0; }
+.callout-note      { border-left: 4px solid var(--ocre) !important; }
+.callout-tip       { border-left: 4px solid var(--savane) !important; }
+
+table thead tr { background-color: var(--nuit) !important; color: white !important; }
+table tbody tr:hover { background-color: var(--creme) !important; }
+
+blockquote { border-left: 4px solid var(--ocre); background: var(--creme);
+             padding: 1em 1.5em; font-style: italic; }

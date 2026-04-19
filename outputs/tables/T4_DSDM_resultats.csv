@@ -1,0 +1,11 @@
+Variable,Coefficient,Std. Error,z-stat,p-value, 
+ρ (spatial lag Y),-0.0224,0.0338,-0.665,0.5064,
+τ — Conflits (t-1),0.7362,0.0201,36.569,0,***
+Log migrants (t-1),0.0052,0.0128,0.409,0.6827,
+Log PIB/hab,0.0239,0.0274,0.874,0.382,
+Démocratie (Polity2),-0.0096,0.0025,-3.817,1e-4,***
+Log ressources,0.0326,0.0151,2.162,0.0306,**
+W × Log migrants,0.0477,0.0229,2.083,0.0373,**
+W × Log PIB/hab,0.0228,0.0365,0.626,0.5314,
+W × Démocratie,-4e-4,0.0039,-0.094,0.925,
+W × Log ressources,-0.029,0.0229,-1.268,0.205,

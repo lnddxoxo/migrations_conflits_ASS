@@ -1,0 +1,8 @@
+Test,Statistique,p-value, 
+I de Moran (résidus MCO),1.3408,0.09,*
+LM-lag (W1 contiguïté),3.0492,0.0808,*
+LM-err (W1 contiguïté),2.4489,0.1176,
+LM-lag (W2 distance),0.277,0.5987,
+LM-err (W2 distance),0.3882,0.5333,
+LM-lag (W3 k=5),1.8078,0.1788,
+LM-err (W3 k=5),1.1036,0.2935,
