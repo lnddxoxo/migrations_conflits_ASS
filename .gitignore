@@ -1,5 +1,5 @@
-# --- R spécifiques ---
-.Rproj.user
+# --- R (Pour toi) ---
+.Rproj.user/
 .Rhistory
 .RData
 .Ruserdata
@@ -7,6 +7,12 @@ data/raw/
 *.rds
 *.dta
 
-# --- Python spécifiques ---
+# --- Python (Pour ton collègue) ---
 __pycache__/
 *.pyc
+.ipynb_checkpoints/
+.venv/
+env/
+
+# --- Divers ---
+.DS_Store
